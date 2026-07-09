@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentIQ — Simulation</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="assets/css/main.css"/>
+  <link rel="stylesheet" href="assets/css/simulation.css"/>
+  <link rel="stylesheet" href="assets/css/assistant.css"/>
+
+  <!-- Guard Route Protection -->
+  <script type="module" src="assets/js/auth/guard.js"></script>
+  
+  <style>
+    /* ===== Variant Controls ===== */
+    .variant-controls {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 6px 12px; background: rgba(108,99,255,0.06);
+      border-bottom: 1px solid var(--border); font-size: 0.78rem;
+    }
+    .variant-label { color: var(--text-muted); font-weight: 500; }
+    .variant-controls input[type=number],
+    .variant-controls select {
+      background: var(--bg-card); border: 1px solid var(--border);
+      color: var(--text-primary); border-radius: 6px; padding: 3px 8px;
+      font-size: 0.78rem; font-family: var(--font-main); outline: none;
+      transition: border-color .2s;
+    }
+    .variant-controls input[type=number]:focus,
+    .variant-controls select:focus { border-color: var(--accent); }
+    .variant-controls input[type=number] { width: 60px; }
+    .variant-info { color: var(--text-muted); font-size: 0.72rem; }
+
+    /* ===== Heuristic / f(n) Panel ===== */
+    .heuristic-panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); margin-bottom: 12px; overflow: hidden;
+    }
+    .heuristic-panel h4 {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: .05em;
+      padding: 9px 13px; background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border); margin: 0;
+    }
+    .fn-calc-box {
+      padding: 10px 13px; border-bottom: 1px solid var(--border);
+      font-size: 0.8rem; font-family: var(--font-mono);
+    }
+    .fn-calc-label { color: var(--text-muted); font-size: 0.68rem; margin-bottom: 5px; }
+    .fn-calc-formula {
+      background: var(--bg-secondary); border-radius: 6px;
+      padding: 7px 10px; color: var(--text-primary); line-height: 1.7;
+    }
+    .fn-calc-formula .fn-g { color: var(--blue); }
+    .fn-calc-formula .fn-h { color: var(--green); }
+    .fn-calc-formula .fn-f { color: var(--amber); font-weight: 700; }
+
+    /* Romania heuristic table */
+    .h-table-wrap { max-height: 160px; overflow-y: auto; padding: 8px; }
+    .h-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+    .h-table th { color: var(--text-muted); font-weight: 600; padding: 3px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    .h-table td { padding: 3px 8px; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .h-table tr.ht-current td { background: rgba(251,191,36,.15); color: var(--amber); font-weight: 600; }
+    .h-table tr.ht-explored td { color: var(--green); }
+    .h-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+    /* Simple h(n) display for maze/robot */
+    .h-simple-box { padding: 10px 13px; font-size: 0.78rem; }
+    .h-simple-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .h-simple-key { color: var(--text-muted); }
+    .h-simple-val { font-family: var(--font-mono); color: var(--text-primary); }
+
+    /* ===== Pseudocode with line highlight ===== */
+    .pc-line { display: block; padding: 1px 18px; transition: background .15s; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.8; color: var(--text-secondary); white-space: pre; }
+    .pc-line.pc-active { background: rgba(251,191,36,.18); color: var(--amber); border-left: 3px solid var(--amber); padding-left: 15px; }
+
+    /* ===== Pulse animation on canvas ===== */
+    @keyframes canvasPulse { 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a class="navbar-brand" href="dashboard.html">
+    <span class="emoji">🧠</span> AgentIQ
+  </a>
+  
+  <div class="navbar-links">
+    <a href="dashboard.html" style="font-size: 0.88rem; margin-right: 12px; color: var(--text-secondary);">← Dashboard</a>
+    
+    <div class="user-profile">
+      <button class="profile-trigger" id="profile-trigger">
+        <div class="profile-avatar" id="user-avatar">U</div>
+        <span class="profile-name" id="user-name">User</span>
+        <span style="font-size: 0.6rem; color: var(--text-muted);">▼</span>
+      </button>
+      <div class="dropdown-menu" id="profile-dropdown">
+        <button class="dropdown-item" id="btn-settings">⚙️ Settings</button>
+        <button class="dropdown-item" id="btn-logout">🚪 Log Out</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="sim-page">
+  <div class="sim-breadcrumb" id="sim-breadcrumb">
+    <a href="dashboard.html">Home</a><span class="sep">›</span>
+    <a href="#" id="bc-problem">Problem</a><span class="sep">›</span>
+    <span class="current" id="bc-algo">Algorithm</span>
+  </div>
+
+  <div class="sim-layout">
+
+    <!-- ===== LEFT PANEL (3/5) ===== -->
+    <div class="sim-left">
+      <div class="sim-left-header">
+        <h3><span id="left-problem-icon">🗺️</span> <span id="left-problem-title">Problem</span></h3>
+        <span class="algo-tag" id="left-algo-tag">Algorithm</span>
+      </div>
+
+      <!-- Variant controls (shown per problem) -->
+      <div class="variant-controls hidden" id="variant-nqueens">
+        <span class="variant-label">♛ N (Queens):</span>
+        <input type="number" id="nqueens-n-input" min="4" max="12" value="8" onchange="updateNQueensN(this.value)"/>
+        <span class="variant-info" id="nqueens-n-val">8</span>
+        <span class="variant-info">queens on N×N board</span>
+      </div>
+      <div class="variant-controls hidden" id="variant-maze">
+        <span class="variant-label">🌀 Maze Size:</span>
+        <select id="maze-size-val" onchange="updateMazeSize(this.value)">
+          <option value="10">Small (10×10)</option>
+          <option value="15" selected>Medium (15×15)</option>
+          <option value="20">Large (20×20)</option>
+        </select>
+      </div>
+
+      <div class="sim-canvas-wrap">
+        <div class="sim-board" id="sim-board">
+          <div class="sim-status-overlay" id="status-overlay">
+            <div class="sim-status-icon">▶️</div>
+            <div class="sim-status-title">Ready to simulate</div>
+            <div class="sim-status-sub">Press Start to begin step-by-step</div>
+          </div>
+          <canvas id="sim-canvas" width="560" height="560"></canvas>
+          <div class="dom-board hidden" id="dom-board"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT PANEL (2/5) ===== -->
+    <div class="sim-right">
+      <div class="sim-right-inner" id="sim-right-inner">
+
+        <!-- PEAS -->
+        <div class="peas-box">
+          <div class="peas-box-header" id="peas-header">
+            <span>📋 PEAS Description</span><span class="peas-toggle">▼</span>
+          </div>
+          <div class="peas-box-body" id="peas-body">
+            <div class="peas-row"><span class="peas-label">Performance</span><span class="peas-value" id="peas-p">—</span></div>
+            <div class="peas-row"><span class="peas-label">Environment</span><span class="peas-value" id="peas-e">—</span></div>
+            <div class="peas-row"><span class="peas-label">Actuators</span><span class="peas-value" id="peas-a">—</span></div>
+            <div class="peas-row"><span class="peas-label">Sensors</span><span class="peas-value" id="peas-s">—</span></div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-box">
+          <h4>⚙️ Controls</h4>
+          <div class="controls-row">
+            <button class="ctrl-btn primary" id="btn-start">▶ Start</button>
+            <button class="ctrl-btn primary" id="btn-pause" disabled>⏸ Pause</button>
+            <button class="ctrl-btn" id="btn-step" disabled>⏭ Step</button>
+            <button class="ctrl-btn" id="btn-prev" disabled>⏮ Prev</button>
+            <button class="ctrl-btn danger" id="btn-reset">↺ Reset</button>
+          </div>
+          <div class="speed-row">
+            <label>Speed</label>
+            <input type="range" class="speed-slider" id="speed-slider" min="1" max="10" value="2"/>
+            <span class="speed-label" id="speed-label">2x</span>
+          </div>
+          <!-- Speed Level Indicator -->
+          <div class="speed-indicator hidden" id="speed-indicator">
+            <div class="speed-indicator-bg">
+              <div class="speed-indicator-fill" id="speed-indicator-fill"></div>
+            </div>
+            <div class="speed-indicator-badge" id="speed-indicator-badge">
+              <span class="speed-badge-text">Speed: </span><span id="speed-badge-level">2x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step Info -->
+        <div class="info-box">
+          <h4>📊 Simulation Progress</h4>
+          <div class="info-stats">
+            <div class="info-stat"><div class="info-stat-label">Step</div><div class="info-stat-value" id="stat-step">0</div></div>
+            <div class="info-stat"><div class="info-stat-label">Nodes Visited</div><div class="info-stat-value" id="stat-expanded">0</div></div>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="list-label" style="margin-bottom:5px;">🔍 Currently Expanding</div>
+            <div style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:8px 12px;font-size:0.85rem;font-weight:600;color:var(--amber);font-family:var(--font-mono);" id="current-node-pill">—</div>
+          </div>
+          <div style="margin-top:10px;">
+            <div class="list-label" style="margin-bottom:5px;">📂 Frontier Nodes Set</div>
+            <div class="node-list" id="frontier-nodes-list" style="max-height:80px;overflow-y:auto;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px;">
+              <span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">Empty frontier</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Heuristic Panel (shown for informed algorithms) -->
+        <div class="heuristic-panel hidden" id="heuristic-panel">
+          <h4 id="h-panel-title">🧮 Heuristic & f(n) Calculation</h4>
+          <!-- f(n) live calc -->
+          <div class="fn-calc-box" id="fn-calc-box" style="display:none">
+            <div class="fn-calc-label">Current node calculation:</div>
+            <div class="fn-calc-formula" id="fn-calc-formula">—</div>
+          </div>
+          <!-- Romania table -->
+          <div id="h-romania-wrap" style="display:none">
+            <div class="h-table-wrap">
+              <table class="h-table" id="h-table">
+                <thead><tr><th>City</th><th>h(n) = SLD</th><th>Status</th></tr></thead>
+                <tbody id="h-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- Simple display for maze/robot -->
+          <div class="h-simple-box" id="h-simple-wrap" style="display:none">
+            <div class="h-simple-row"><span class="h-simple-key">Current position:</span><span class="h-simple-val" id="h-simple-pos">—</span></div>
+            <div class="h-simple-row"><span class="h-simple-key">Goal position:</span><span class="h-simple-val" id="h-simple-goal">—</span></div>
+            <div class="h-simple-row"><span class="h-simple-key">h(n) = Distance:</span><span class="h-simple-val" id="h-simple-val">—</span></div>
+          </div>
+        </div>
+
+        <!-- Current Path (builds during simulation) -->
+        <div class="path-box">
+          <h4>🛤️ Current Path</h4>
+          <div id="path-display" class="path-nodes">
+            <span class="path-empty">Not started yet</span>
+          </div>
+          <div id="path-cost" class="hidden path-cost"></div>
+        </div>
+
+        <!-- Solution Path (green, shown after goal) -->
+        <div class="path-box hidden" id="solution-box" style="border-color:rgba(74,222,128,.3);">
+          <h4 style="color:var(--green);">✅ Solution Found!</h4>
+          <div id="solution-path" class="path-nodes" style="margin-top:6px;"></div>
+          <div id="solution-cost" style="font-size:0.75rem;color:var(--green);margin-top:5px;font-family:var(--font-mono);"></div>
+        </div>
+
+      </div><!-- /sim-right-inner -->
+
+      <!-- Bottom button row -->
+      <div class="sim-btn-row">
+        <button class="panel-trigger-btn pseudo-btn" onclick="togglePanel('pseudo-panel')">📄 Pseudocode</button>
+        <button class="panel-trigger-btn agent-btn"  onclick="togglePanel('agent-panel')">🤖 Agent</button>
+      </div>
+
+      <!-- ===== PSEUDOCODE SLIDE PANEL ===== -->
+      <div class="slide-panel" id="pseudo-panel">
+        <div class="slide-panel-header">
+          <div class="slide-panel-title"><span class="panel-icon">📄</span><span id="pseudo-panel-title">Pseudocode</span></div>
+          <button class="slide-close-btn" onclick="togglePanel('pseudo-panel')">✕</button>
+        </div>
+        <div class="slide-panel-body">
+          <div class="pseudocode-wrap">
+            <code id="pc-lines-container" style="display:block; white-space: pre; padding: 12px 14px;"></code>
+          </div>
+          <div class="pseudo-note" id="pseudo-note"></div>
+        </div>
+      </div>
+
+      <!-- ===== AGENT SLIDE PANEL ===== -->
+      <div class="slide-panel" id="agent-panel">
+        <div class="slide-panel-header">
+          <div class="slide-panel-title">
+            <span class="panel-icon">🤖</span>AgentIQ Assistant
+            <div style="display:flex;align-items:center;gap:6px;margin-left:12px;font-size:0.7rem;font-weight:normal;">
+              <span id="assistant-mode-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent-green);"></span>
+              <span id="assistant-mode-label">Knowledge Base</span>
+            </div>
+          </div>
+          <div class="slide-panel-actions">
+            <button class="slide-action-btn" id="btn-clear-chat" type="button">Clear Chat</button>
+            <button class="slide-close-btn" onclick="togglePanel('agent-panel')">✕</button>
+          </div>
+        </div>
+        <div class="slide-panel-body">
+          <div class="chat-wrap">
+            <div class="chat-messages" id="chat-messages">
+              <div class="chat-welcome">
+                <span class="welcome-icon">🤖</span>
+                <p>Hello! I'm <b>AgentIQ Assistant</b> 👋<br>Your AI learning tutor. Ask me anything about this algorithm, problem, heuristics, or PEAS!</p>
+              </div>
+            </div>
+            <div style="margin-top:8px;flex-shrink:0;">
+              <div style="font-size:0.60rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Suggested questions</div>
+              <div id="suggestions-list" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px;"></div>
+            </div>
+            <div class="chat-input-row">
+              <textarea class="chat-input" id="chat-input" placeholder="Ask anything…" rows="2"></textarea>
+              <button class="chat-send-btn">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sim-right -->
+  </div><!-- /sim-layout -->
+</div><!-- /sim-page -->
+
+<!-- SETTINGS MODAL -->
+<div class="settings-modal" id="settings-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>App Settings</h3>
+      <button class="modal-close" id="modal-close-btn">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Visual Theme</label>
+        <button class="btn btn-secondary w-full" id="btn-theme-toggle" style="display:flex; justify-content: space-between;">
+          <span>Toggle Light / Dark Theme</span>
+          <span id="theme-mode-label">Dark Mode</span>
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ES6 Module Simulation Script Logic -->
+<script type="module">
+  import { Auth } from './assets/js/auth/auth.js';
+  import { SimState } from './assets/js/sim_state.js';
+  import { SimController } from './assets/js/sim_controller.js';
+  import { PROBLEMS_METADATA } from './assets/js/problems/problems_all.js';
+  import { getPseudocode } from './assets/data/pseudocodes.js';
+  import { AgentPanel } from './assets/js/assistant/agent_panel.js';
+  // --- Auth & Session Info ---
+  const session = Auth.getCurrentSession();
+  if (session) {
+    document.getElementById('user-name').textContent = session.name;
+    document.getElementById('user-avatar').textContent = session.name.charAt(0);
+  }
+
+  // --- Theme & API Key Settings ---
+  const currentTheme = localStorage.getItem('agentiq_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  document.getElementById('theme-mode-label').textContent = currentTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+
+  // --- Profile Trigger Dropdown ---
+  const profileTrigger = document.getElementById('profile-trigger');
+  const profileDropdown = document.getElementById('profile-dropdown');
+  profileTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileDropdown.classList.toggle('show');
+  });
+  document.addEventListener('click', () => {
+    profileDropdown.classList.remove('show');
+  });
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    Auth.logout();
+  });
+
+  // --- Modal Controls ---
+  const settingsModal = document.getElementById('settings-modal');
+  document.getElementById('btn-settings').addEventListener('click', () => {
+    settingsModal.classList.add('show');
+  });
+  const closeModal = () => settingsModal.classList.remove('show');
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-save-btn').addEventListener('click', closeModal);
+  document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+    const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('agentiq_theme', newTheme);
+    document.getElementById('theme-mode-label').textContent = newTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+  });
+
+  // PEAS collapsible
+  document.getElementById('peas-header').addEventListener('click', () => {
+    const body = document.getElementById('peas-body');
+    const header = document.getElementById('peas-header');
+    const open = body.classList.toggle('open');
+    header.classList.toggle('open', open);
+  });
+
+  // --- Simulation Setup & Page State ---
+  const params = new URLSearchParams(window.location.search);
+  const problemId = params.get('problem');
+  const algoId = params.get('algo');
+  const problemMeta = PROBLEMS_METADATA[problemId];
+
+  // Map algorithm ids to readable names
+  const ALGO_NAMES = {
+    BFS: 'Breadth-First Search',
+    DFS: 'Depth-First Search',
+    UCS: 'Uniform Cost Search',
+    Greedy: 'Greedy Best-First Search',
+    AStar: 'A* Search',
+    HillClimbing: 'Hill Climbing'
+  };
+
+  let simSpeed = 2; // initial speed (2x)
+  let simRunning = false;
+
+  const container = problemMeta?.renderer === 'canvas' 
+    ? document.getElementById('sim-canvas') 
+    : document.getElementById('dom-board');
+
+  if (problemMeta?.renderer === 'canvas') {
+    document.getElementById('sim-canvas').classList.remove('hidden');
+    document.getElementById('dom-board').classList.add('hidden');
+  } else {
+    document.getElementById('sim-canvas').classList.add('hidden');
+    document.getElementById('dom-board').classList.remove('hidden');
+  }
+
+
+
+  function getSpeedMs() {
+    return Math.round(1000 / simSpeed);
+  }
+
+  function initEngineInstance() {
+    SimController.initEngine(problemId, algoId, container);
+    // Initialize heuristic panel structure
+    if (['AStar', 'Greedy'].includes(algoId)) {
+      initHeuristicPanel();
+    }
+    resetUI();
+  }
+
+  // --- Heuristic Panel UI Initialization ---
+  const SLD_MAP = {
+    Arad: 366, Bucharest: 0, Sibiu: 253, Rimnicu: 193, Fagaras: 176, Pitesti: 100,
+    Zerind: 374, Oradea: 380, Timisoara: 329, Lugoj: 244, Mehadia: 241, Drobeta: 242,
+    Craiova: 160, Urziceni: 80, Hirsova: 151, Eforie: 161, Vaslui: 199, Iasi: 226,
+    Neamt: 234, Giurgiu: 77
+  };
+
+  function initHeuristicPanel() {
+    const h4 = document.getElementById('h-panel-title');
+    const fnBox = document.getElementById('fn-calc-box');
+
+    if (algoId === 'AStar') {
+      h4.textContent = '🧮 f(n) = g(n) + h(n) Calculation';
+      fnBox.style.display = 'block';
+    } else {
+      h4.textContent = '🎯 Heuristic h(n) Values';
+      fnBox.style.display = 'none';
+    }
+
+    if (problemId === 'romania') {
+      document.getElementById('h-romania-wrap').style.display = 'block';
+      document.getElementById('h-simple-wrap').style.display = 'none';
+      buildRomaniaTable();
+    } else if (['maze', 'robot_path', 'puzzle8', 'vacuum', 'tsp'].includes(problemId)) {
+      document.getElementById('h-romania-wrap').style.display = 'none';
+      document.getElementById('h-simple-wrap').style.display = 'block';
+      const goals = {
+        maze: '(10,10)',
+        robot_path: '(9,14)',
+        puzzle8: 'Grid in order [1..8, 0]',
+        vacuum: 'All cells clean',
+        tsp: 'Complete minimal tour'
+      };
+      document.getElementById('h-simple-goal').textContent = goals[problemId] || 'Goal';
+    } else {
+      document.getElementById('h-romania-wrap').style.display = 'none';
+      document.getElementById('h-simple-wrap').style.display = 'none';
+    }
+  }
+
+  function buildRomaniaTable() {
+    const tbody = document.getElementById('h-table-body');
+    const cities = Object.keys(SLD_MAP).sort();
+    tbody.innerHTML = cities.map(city =>
+      `<tr id="ht-${city}"><td>${city}</td><td>${SLD_MAP[city]}</td><td id="ht-status-${city}">—</td></tr>`
+    ).join('');
+  }
+
+  function updateHeuristicPanelUI(current) {
+    if (problemId === 'romania') {
+      const explored = Array.from(SimState.explored) || [];
+      Object.keys(SLD_MAP).forEach(city => {
+        const row = document.getElementById(`ht-${city}`);
+        const statusEl = document.getElementById(`ht-status-${city}`);
+        if (!row || !statusEl) return;
+        row.classList.remove('ht-current', 'ht-explored');
+        if (city === current) {
+          row.classList.add('ht-current');
+          statusEl.textContent = '← Expanding';
+        } else if (explored.includes(city)) {
+          row.classList.add('ht-explored');
+          statusEl.textContent = '✓ Explored';
+        } else {
+          statusEl.textContent = '—';
+        }
+      });
+
+      // Update A* / Greedy formulas
+      if (current) {
+        if (algoId === 'AStar') {
+          const g = SimState.gValues[current] ?? 0;
+          const h = SLD_MAP[current] ?? 0;
+          const f = g + h;
+          document.getElementById('fn-calc-formula').innerHTML =
+            `f(${current}) = <span class="fn-g">g(n)=${g}</span> + <span class="fn-h">h(n)=${h}</span> = <span class="fn-f">${f}</span>`;
+        } else if (algoId === 'Greedy') {
+          const h = SLD_MAP[current] ?? 0;
+          document.getElementById('fn-calc-box').style.display = 'block';
+          document.getElementById('fn-calc-formula').innerHTML =
+            `Greedy selects <b>${current}</b> with lowest <span class="fn-h">h(n) = ${h}</span> km to goal`;
+        }
+      }
+    } else {
+      // Simple display
+      if (current) {
+        document.getElementById('h-simple-pos').textContent = current;
+        const hVal = SimState.currentH ?? SimState.hValues[current] ?? '?';
+        document.getElementById('h-simple-val').textContent = hVal;
+
+        if (algoId === 'AStar') {
+          const gVal = SimState.gValues[current] ?? SimState.cost ?? 0;
+          const fVal = SimState.currentF ?? (gVal + (parseInt(hVal) || 0));
+          document.getElementById('fn-calc-box').style.display = 'block';
+          document.getElementById('fn-calc-formula').innerHTML =
+            `f(n) = <span class="fn-g">g=${gVal}</span> + <span class="fn-h">h=${hVal}</span> = <span class="fn-f">${fVal}</span>`;
+        }
+      }
+    }
+  }
+
+  // --- Pseudocode Panel Initialization ---
+  let currentPcLine = -1;
+  const pc = getPseudocode(algoId);
+  document.getElementById('pseudo-panel-title').textContent = pc.title;
+  renderPseudocode(pc.lines);
+
+  function renderPseudocode(lines) {
+    const container = document.getElementById('pc-lines-container');
+    container.innerHTML = lines.map((line, i) =>
+      `<span class="pc-line" id="pc-line-${i}">${escapeHtml(line)}</span>`
+    ).join('');
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function highlightPcLine(lineIdx) {
+    if (lineIdx === currentPcLine) return;
+    if (currentPcLine >= 0) {
+      const prev = document.getElementById(`pc-line-${currentPcLine}`);
+      if (prev) prev.classList.remove('pc-active');
+    }
+    currentPcLine = lineIdx;
+    const el = document.getElementById(`pc-line-${lineIdx}`);
+    if (el) {
+      el.classList.add('pc-active');
+      const pseudoPanel = document.getElementById('pseudo-panel');
+      const panelBody = document.querySelector('#pseudo-panel .slide-panel-body');
+      if (panelBody && pseudoPanel && pseudoPanel.classList.contains('open')) {
+        const elTop = el.offsetTop;
+        const elHeight = el.offsetHeight;
+        const pbHeight = panelBody.clientHeight;
+        const pbScroll = panelBody.scrollTop;
+        if (elTop < pbScroll || elTop + elHeight > pbScroll + pbHeight) {
+          panelBody.scrollTop = elTop - pbHeight / 2;
+        }
+      }
+    }
+  }
+
+  // --- UI Update & Rendering handlers ---
+  function updateUI(stepResult = null) {
+    document.getElementById('stat-step').textContent = SimState.step;
+    document.getElementById('stat-expanded').textContent = SimState.expandedCount;
+    
+    const currLabel = SimState.currentNode ? SimState.currentNode.label : '—';
+    document.getElementById('current-node-pill').textContent = currLabel;
+
+    // Update Frontier list pills
+    const frontierWrap = document.getElementById('frontier-nodes-list');
+    if (frontierWrap) {
+      frontierWrap.innerHTML = '';
+      if (SimState.frontier && SimState.frontier.length) {
+        const displayLimit = 15;
+        const slice = SimState.frontier.slice(0, displayLimit);
+        slice.forEach(label => {
+          const pill = document.createElement('span');
+          pill.className = 'node-pill open-node';
+          pill.textContent = label;
+          frontierWrap.appendChild(pill);
+        });
+        if (SimState.frontier.length > displayLimit) {
+          const more = document.createElement('span');
+          more.style.cssText = 'font-size:0.7rem;color:var(--text-muted);align-self:center;margin-left:4px;';
+          more.textContent = `+ ${SimState.frontier.length - displayLimit} more`;
+          frontierWrap.appendChild(more);
+        }
+      } else {
+        frontierWrap.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">Empty frontier</span>';
+      }
+    }
+
+    // Heuristics
+    if (['AStar', 'Greedy'].includes(algoId) && SimState.currentNode) {
+      updateHeuristicPanelUI(SimState.currentNode.label);
+    }
+
+    // Path
+    const pathEl = document.getElementById('path-display');
+    const costEl = document.getElementById('path-cost');
+    if (SimState.path && SimState.path.length) {
+      pathEl.innerHTML = SimState.path.map((n, i) =>
+        (i > 0 ? '<span class="path-arrow">➔</span>' : '') +
+        `<span class="path-node">${n}</span>`
+      ).join('');
+      costEl.classList.remove('hidden');
+      costEl.textContent = `Path Cost g(n) = ${SimState.cost}`;
+    } else {
+      pathEl.innerHTML = '<span class="path-empty">Not started yet</span>';
+      costEl.classList.add('hidden');
+    }
+
+    // Handle step highlighting
+    if (stepResult && stepResult.pcPhase) {
+      const lineIdx = pc.stepToLine(stepResult.pcPhase);
+      highlightPcLine(lineIdx);
+    }
+
+    // Suggestions context update
+    AgentPanel.renderSuggestions();
+  }
+
+  function resetUI() {
+    document.getElementById('stat-step').textContent = '0';
+    document.getElementById('stat-expanded').textContent = '0';
+    document.getElementById('current-node-pill').textContent = '—';
+    document.getElementById('path-display').innerHTML = '<span class="path-empty">Not started yet</span>';
+    document.getElementById('path-cost').classList.add('hidden');
+    document.getElementById('solution-box').classList.add('hidden');
+    
+    const frontierWrap = document.getElementById('frontier-nodes-list');
+    if (frontierWrap) {
+      frontierWrap.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);font-style:italic;">Empty frontier</span>';
+    }
+
+    const overlay = document.getElementById('status-overlay');
+    overlay.classList.remove('hidden');
+    overlay.innerHTML = `
+      <div class="sim-status-icon">▶️</div>
+      <div class="sim-status-title">Ready to simulate</div>
+      <div class="sim-status-sub">Press Start to begin step-by-step</div>
+    `;
+
+    currentPcLine = -1;
+    document.querySelectorAll('.pc-line').forEach(el => el.classList.remove('pc-active'));
+
+    const ni = document.getElementById('nqueens-n-input');
+    const ms = document.getElementById('maze-size-val');
+    if (ni) ni.disabled = false;
+    if (ms) ms.disabled = false;
+
+    if (['AStar', 'Greedy'].includes(algoId)) {
+      initHeuristicPanel();
+    }
+  }
+
+  function getProgressStorageKey() {
+    const userId = session?.email ? encodeURIComponent(session.email.toLowerCase()) : 'guest';
+    return `agentiq_progress_${userId}`;
+  }
+
+  function saveProgress(problemId, algoId) {
+    try {
+      const progress = JSON.parse(localStorage.getItem(getProgressStorageKey()) || '{}');
+      const now = new Date().toISOString();
+      if (!progress[problemId]) {
+        progress[problemId] = {
+          completed: true,
+          algos: [algoId],
+          attempts: 1,
+          lastCompletedAt: now,
+          bestCost: SimState.cost,
+          bestSteps: SimState.step
+        };
+      } else {
+        progress[problemId].completed = true;
+        progress[problemId].attempts = (progress[problemId].attempts || 0) + 1;
+        progress[problemId].lastCompletedAt = now;
+        if (!progress[problemId].algos.includes(algoId)) {
+          progress[problemId].algos.push(algoId);
+        }
+        if (progress[problemId].bestCost === undefined || SimState.cost < progress[problemId].bestCost) {
+          progress[problemId].bestCost = SimState.cost;
+        }
+        if (progress[problemId].bestSteps === undefined || SimState.step < progress[problemId].bestSteps) {
+          progress[problemId].bestSteps = SimState.step;
+        }
+      }
+      localStorage.setItem(getProgressStorageKey(), JSON.stringify(progress));
+    } catch(e) {
+      console.error('Failed to save progress:', e);
+    }
+  }
+
+  function showFinishedOverlay(res) {
+    const overlay = document.getElementById('status-overlay');
+    overlay.classList.remove('hidden');
+
+    if (res.success) {
+      saveProgress(problemId, algoId);
+
+      overlay.innerHTML = `
+        <div class="sim-status-icon">✅</div>
+        <div class="sim-status-title">Goal Reached!</div>
+        <div class="sim-status-sub">Found in ${SimState.step} steps · Cost: ${SimState.cost}</div>
+      `;
+
+      // Show solution box
+      const sb = document.getElementById('solution-box');
+      sb.classList.remove('hidden');
+      document.getElementById('solution-path').innerHTML = SimState.path.map((n, i) =>
+        (i > 0 ? '<span class="path-arrow" style="color:var(--green)">➔</span>' : '') +
+        `<span class="path-node" style="background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.3);color:var(--green);">${n}</span>`
+      ).join('');
+      document.getElementById('solution-cost').textContent = `Total Cost: ${SimState.cost} | Total Steps: ${SimState.step}`;
+    } else {
+      overlay.innerHTML = `
+        <div class="sim-status-icon">❌</div>
+        <div class="sim-status-title">No Solution Found</div>
+        <div class="sim-status-sub">Search space exhausted after ${SimState.step} steps.</div>
+      `;
+    }
+  }
+
+  // --- Variant Controls Handlers ---
+  window.updateNQueensN = function(val) {
+    const n = Math.max(4, Math.min(12, parseInt(val) || 8));
+    document.getElementById('nqueens-n-input').value = n;
+    document.getElementById('nqueens-n-val').textContent = n;
+    initEngineInstance();
+  };
+
+  window.updateMazeSize = function(val) {
+    initEngineInstance();
+  };
+
+  // --- Button Event Bindings ---
+  const btnStart = document.getElementById('btn-start');
+  const btnPause = document.getElementById('btn-pause');
+  const btnStep = document.getElementById('btn-step');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnReset = document.getElementById('btn-reset');
+
+  function setButtonStates(running) {
+    btnStart.disabled = running;
+    btnPause.disabled = !running;
+    btnStep.disabled = running;
+    btnPrev.disabled = running;
+  }
+
+  btnStart.addEventListener('click', () => {
+    document.getElementById('status-overlay').classList.add('hidden');
+    simRunning = true;
+    setButtonStates(true);
+    // Disable inputs
+    const ni = document.getElementById('nqueens-n-input');
+    const ms = document.getElementById('maze-size-val');
+    if (ni) ni.disabled = true;
+    if (ms) ms.disabled = true;
+
+    SimController.playAuto(getSpeedMs(), container, (res) => {
+      updateUI(res);
+      if (res.done) {
+        simRunning = false;
+        setButtonStates(false);
+        btnPause.disabled = true;
+        showFinishedOverlay(res);
+      }
+    });
+  });
+
+  btnPause.addEventListener('click', () => {
+    if (simRunning) {
+      SimController.pause();
+      simRunning = false;
+      btnPause.textContent = '▶ Resume';
+      btnStep.disabled = false;
+      btnPrev.disabled = false;
+    } else {
+      simRunning = true;
+      btnPause.textContent = '⏸ Pause';
+      setButtonStates(true);
+      SimController.playAuto(getSpeedMs(), container, (res) => {
+        updateUI(res);
+        if (res.done) {
+          simRunning = false;
+          setButtonStates(false);
+          btnPause.disabled = true;
+          showFinishedOverlay(res);
+        }
+      });
+    }
+  });
+
+  btnStep.addEventListener('click', () => {
+    document.getElementById('status-overlay').classList.add('hidden');
+    const res = SimController.stepForward(container);
+    updateUI(res);
+    btnPrev.disabled = false;
+    if (res.done) {
+      showFinishedOverlay(res);
+    }
+  });
+
+  btnPrev.addEventListener('click', () => {
+    SimController.pause();
+    simRunning = false;
+    btnPause.textContent = '▶ Resume';
+    setButtonStates(false);
+    
+    const restored = SimController.stepBackward(container);
+    if (restored) {
+      updateUI();
+    }
+    if (SimState.step === 0) {
+      btnPrev.disabled = true;
+      resetUI();
+    }
+  });
+
+  btnReset.addEventListener('click', () => {
+    SimController.pause();
+    simRunning = false;
+    btnPause.textContent = '▶ Resume';
+    setButtonStates(false);
+    btnPrev.disabled = true;
+    initEngineInstance();
+  });
+
+  // Speed Slider
+  const slider = document.getElementById('speed-slider');
+  let speedIndicatorTimeout = null;
+  
+  slider.addEventListener('input', (e) => {
+    simSpeed = parseInt(e.target.value);
+    document.getElementById('speed-label').textContent = simSpeed + 'x';
+    
+    // Update gradient fill based on slider value (0-10)
+    const fillPercent = (simSpeed / 10) * 100;
+    slider.style.backgroundSize = fillPercent + '% 100%';
+    
+    // If simulation is running, restart with new speed immediately
+    if (simRunning) {
+      SimController.pause(); // Pause current simulation
+      simRunning = true;
+      // Restart with new speed
+      SimController.playAuto(getSpeedMs(), container, (res) => {
+        updateUI(res);
+        if (res.done) {
+          simRunning = false;
+          setButtonStates(false);
+          btnPause.disabled = true;
+          showFinishedOverlay(res);
+        }
+      });
+    }
+  });
+  
+  // Initialize slider fill on page load
+  setTimeout(() => {
+    const initialFill = (parseInt(slider.value) / 10) * 100;
+    slider.style.backgroundSize = initialFill + '% 100%';
+  }, 100);
+
+
+  // Slide Panels toggle
+  window.togglePanel = function(panelId) {
+    const panel = document.getElementById(panelId);
+    const isOpen = panel.classList.toggle('open');
+    const other = panelId === 'pseudo-panel' ? 'agent-panel' : 'pseudo-panel';
+    document.getElementById(other).classList.remove('open');
+    if (isOpen && panelId === 'pseudo-panel' && currentPcLine >= 0) {
+      setTimeout(() => highlightPcLine(currentPcLine), 150);
+    }
+  };
+
+  // Run initialization
+  if (!problemMeta || !ALGO_NAMES[algoId]) {
+    document.getElementById('left-problem-title').textContent = 'Problem/Algorithm not found';
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+  } else {
+    // Setup crumbs
+    document.getElementById('bc-problem').textContent = problemMeta.name;
+    document.getElementById('bc-problem').href = `algo-select.html?problem=${problemId}`;
+    document.getElementById('bc-algo').textContent = ALGO_NAMES[algoId];
+    document.title = `AgentIQ — ${problemMeta.name} — ${algoId}`;
+
+    document.getElementById('left-problem-icon').textContent = problemMeta.icon;
+    document.getElementById('left-problem-title').textContent = problemMeta.name;
+    document.getElementById('left-algo-tag').textContent = algoId;
+
+    // PEAS
+    const peas = problemMeta.peas || {};
+    document.getElementById('peas-p').textContent = peas.performance || '—';
+    document.getElementById('peas-e').textContent = peas.environment || '—';
+    document.getElementById('peas-a').textContent = peas.actuators || '—';
+    document.getElementById('peas-s').textContent = peas.sensors || '—';
+
+    // Show/hide variant controls
+    document.getElementById('variant-nqueens').classList.toggle('hidden', problemId !== 'nqueens');
+    document.getElementById('variant-maze').classList.toggle('hidden', problemId !== 'maze');
+
+    // Show/hide heuristic panel
+    const isInformed = ['AStar', 'Greedy'].includes(algoId);
+    document.getElementById('heuristic-panel').classList.toggle('hidden', !isInformed);
+
+    // Initialise engine
+    initEngineInstance();
+    AgentPanel.init(SimState);
+  }
+</script>
+</body>
+</html>

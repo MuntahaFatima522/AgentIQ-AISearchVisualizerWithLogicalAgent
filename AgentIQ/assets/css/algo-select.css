@@ -1,0 +1,210 @@
+/* ============================================================
+   algo-select.css — Algorithm Selection Page Styles
+   ============================================================ */
+
+.algo-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2rem 6rem; /* bottom padding for sticky bar */
+}
+
+/* ---------- Problem Header ---------- */
+.problem-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.problem-header-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.problem-header-info h1 {
+  font-size: 1.45rem;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.problem-header-info p {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ---------- Algo Cards Grid ---------- */
+.algo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.algo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), background-color var(--transition);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.algo-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-bright);
+}
+
+/* Selection State (No glow, flat solid borders) */
+.algo-card.selected {
+  border: 2px solid var(--accent-blue) !important;
+  background: var(--bg-elevated) !important;
+}
+
+.algo-card.selected::before {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  color: var(--accent-blue);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Color accents per type on border left */
+.algo-card.uninformed { border-left: 4px solid var(--accent-blue); }
+.algo-card.informed   { border-left: 4px solid var(--accent-green); }
+.algo-card.local      { border-left: 4px solid var(--accent-orange); }
+
+.algo-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-right: 12px; /* space for checkmark */
+}
+
+.algo-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+}
+
+.algo-fullname {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.algo-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.badge-uninformed-card { background: rgba(79, 142, 247, 0.12); color: var(--accent-blue); }
+.badge-informed-card   { background: rgba(62, 207, 142, 0.12); color: var(--accent-green); }
+.badge-local-card      { background: rgba(247, 147, 79, 0.12); color: var(--accent-orange); }
+
+.algo-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1.2rem;
+}
+
+.algo-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.algo-complexity {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  line-height: 1.4;
+}
+
+/* ---------- Sticky Actions Bar ---------- */
+.actions-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 72px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 200;
+  backdrop-filter: blur(8px);
+}
+
+.actions-bar .btn {
+  min-width: 140px;
+  height: 42px;
+}
+
+/* ---------- Comparison Section ---------- */
+.comparison-section {
+  margin-top: 3rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.comparison-section h2 {
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+}
+
+.comparison-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.comparison-table th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.comparison-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.comparison-table tr:last-child td { border-bottom: none; }
+
+.check  { color: var(--accent-green); font-weight: 600; }
+.cross  { color: var(--accent-red); }
+.dash   { color: var(--text-muted); }

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentIQ — Select Algorithm</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/algo-select.css" />
+  <link rel="stylesheet" href="assets/css/agent-modal.css" />
+
+  <!-- Guard Route Protection -->
+  <script type="module" src="assets/js/auth/guard.js"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="dashboard.html">
+      <span class="emoji">🧠</span> AgentIQ
+    </a>
+    
+    <div class="navbar-links">
+      <a href="dashboard.html" style="font-size: 0.88rem; margin-right: 12px; color: var(--text-secondary);">← Dashboard</a>
+      
+      <button id="btn-agent-open" class="nav-agent-btn" title="Open AgentIQ Assistant" style="display:flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(108,92,231,0.15); border:1px solid rgba(108,92,231,0.3); border-radius:6px; color:var(--accent-light); font-size:0.85rem; cursor:pointer; transition:all var(--transition); margin-right:12px;">
+        <span>🤖</span> Assistant
+      </button>
+      
+      <div class="user-profile">
+        <button class="profile-trigger" id="profile-trigger">
+          <div class="profile-avatar" id="user-avatar">U</div>
+          <span class="profile-name" id="user-name">User</span>
+          <span style="font-size: 0.6rem; color: var(--text-muted);">▼</span>
+        </button>
+        <div class="dropdown-menu" id="profile-dropdown">
+          <button class="dropdown-item" id="btn-settings">⚙️ Settings</button>
+          <button class="dropdown-item" id="btn-logout">🚪 Log Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ALGORITHM SELECT PAGE CONTENT -->
+  <main class="algo-page">
+    
+    <!-- Breadcrumb -->
+    <div class="breadcrumb" style="background:none; border:none; padding:0 0 1.25rem;">
+      <a href="dashboard.html">Dashboard</a>
+      <span class="sep">/</span>
+      <span class="current" id="bc-problem-name">Problem</span>
+    </div>
+
+    <!-- Problem Summary Header -->
+    <header class="problem-header" id="problem-header">
+      <div class="problem-header-icon" id="problem-icon">❓</div>
+      <div class="problem-header-info">
+        <h1 id="problem-title">Loading Problem...</h1>
+        <p id="problem-desc"></p>
+      </div>
+    </header>
+
+    <div class="section-header">
+      <h2>Select Algorithm</h2>
+      <div class="section-divider"></div>
+    </div>
+    
+    <p class="text-sm text-secondary" style="margin-bottom: 1.5rem;">Select <b>1 algorithm</b> to simulate, or select <b>2 algorithms</b> to run a side-by-side comparison. Problems with one available algorithm can still open comparison mode.</p>
+
+    <!-- Algorithms Grid -->
+    <section class="algo-grid" id="algo-grid">
+      <!-- Injected by JavaScript -->
+    </section>
+
+    <!-- Comparison details -->
+    <section class="comparison-section">
+      <h2>Algorithm Theoretical Comparison</h2>
+      <div class="comparison-table-wrap">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Algorithm</th>
+              <th>Type</th>
+              <th>Time Complexity</th>
+              <th>Space Complexity</th>
+              <th>Optimal?</th>
+              <th>Complete?</th>
+            </tr>
+          </thead>
+          <tbody id="comparison-tbody">
+            <!-- Loaded dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM ACTIONS BAR -->
+  <div class="actions-bar">
+    <button class="btn btn-secondary" id="btn-simulate" disabled>▶ Simulate</button>
+    <button class="btn btn-primary" id="btn-compare" disabled>⚖ Compare</button>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="settings-modal" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>App Settings</h3>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Gemini API Key managed in config -->
+        <div class="form-group">
+          <label>Visual Theme</label>
+          <button class="btn btn-secondary w-full" id="btn-theme-toggle" style="justify-content: space-between;">
+            <span>Toggle Light / Dark Mode</span>
+            <span id="theme-mode-label">Dark Mode</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="modal-save-btn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Logic -->
+  <script type="module">
+    import { Auth } from './assets/js/auth/auth.js';
+    import { PROBLEMS_METADATA } from './assets/js/problems/problems_all.js';
+    import { AgentModal } from './assets/js/assistant/agent-modal.js';
+
+    // 1. Populate user session details
+    const session = Auth.getCurrentSession();
+    if (session) {
+      document.getElementById('user-name').textContent = session.name;
+      document.getElementById('user-avatar').textContent = session.name.charAt(0);
+    }
+
+    // 2. Settings & Theme
+    const currentTheme = localStorage.getItem('agentiq_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    document.getElementById('theme-mode-label').textContent = currentTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+
+    // 3. User drop down
+    const profileTrigger = document.getElementById('profile-trigger');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    
+    profileTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle('show');
+    });
+
+    document.addEventListener('click', () => {
+      profileDropdown.classList.remove('show');
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      Auth.logout();
+    });
+
+    // 4. Modal Control
+    const settingsModal = document.getElementById('settings-modal');
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      settingsModal.classList.add('show');
+    });
+    
+    const closeModal = () => settingsModal.classList.remove('show');
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+    // Save Settings
+    document.getElementById('modal-save-btn').addEventListener('click', () => {
+      closeModal();
+    });
+
+    // Theme Toggle inside Modal
+    document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+      const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('agentiq_theme', newTheme);
+      document.getElementById('theme-mode-label').textContent = newTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+    });
+
+    // 5. Load selected problem from URL query params
+    const params = new URLSearchParams(window.location.search);
+    const problemId = params.get('problem');
+    const problem = PROBLEMS_METADATA[problemId];
+
+    if (!problem) {
+      document.getElementById('problem-title').textContent = 'Problem Not Found';
+      document.getElementById('problem-desc').textContent = 'Redirecting you back to the dashboard...';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 2000);
+    } else {
+      document.getElementById('bc-problem-name').textContent = problem.name;
+      document.getElementById('problem-icon').textContent = problem.icon;
+      document.getElementById('problem-title').textContent = problem.name;
+      document.getElementById('problem-desc').textContent = problem.description;
+    }
+
+    // 6. Algorithm Selection Data & Render
+    const ALGO_DETAILS = {
+      BFS: {
+        name: 'BFS',
+        fullName: 'Breadth-First Search',
+        type: 'uninformed',
+        time: 'O(bᵈ)',
+        space: 'O(bᵈ)',
+        optimal: 'Yes (uniform costs)',
+        complete: 'Yes',
+        desc: 'Explores level by level using a FIFO queue. Guarantees the shallowest goal path.'
+      },
+      DFS: {
+        name: 'DFS',
+        fullName: 'Depth-First Search',
+        type: 'uninformed',
+        time: 'O(bᵐ)',
+        space: 'O(bm)',
+        optimal: 'No',
+        complete: 'No',
+        desc: 'Explores down a single branch before backtracking using a LIFO stack.'
+      },
+      UCS: {
+        name: 'UCS',
+        fullName: 'Uniform Cost Search',
+        type: 'uninformed',
+        time: 'O(b^(1+⌊C*/ε⌋))',
+        space: 'O(b^(1+⌊C*/ε⌋))',
+        optimal: 'Yes',
+        complete: 'Yes',
+        desc: 'Expands the lowest cumulative path cost g(n) node first. Generalization of BFS.'
+      },
+      Greedy: {
+        name: 'Greedy',
+        fullName: 'Greedy Best-First Search',
+        type: 'informed',
+        time: 'O(bᵐ)',
+        space: 'O(bᵐ)',
+        optimal: 'No',
+        complete: 'No',
+        desc: 'Explores node closest to goal based strictly on heuristic h(n), ignoring path cost.'
+      },
+      AStar: {
+        name: 'A*',
+        fullName: 'A* Search',
+        type: 'informed',
+        time: 'O(bᵈ)',
+        space: 'O(bᵈ)',
+        optimal: 'Yes (admissible h)',
+        complete: 'Yes',
+        desc: 'Combines actual cost g(n) and heuristic h(n) to prioritize nodes by f(n) = g + h.'
+      },
+      HillClimbing: {
+        name: 'Hill Climbing',
+        fullName: 'Hill Climbing Search',
+        type: 'local',
+        time: 'O(∞)',
+        space: 'O(1)',
+        optimal: 'No',
+        complete: 'No',
+        desc: 'Iteratively moves to the neighbor with the best evaluation. Keeps no frontier.'
+      }
+    };
+
+    let selectedAlgos = [];
+
+    function initAlgorithmList() {
+      const grid = document.getElementById('algo-grid');
+      const tableBody = document.getElementById('comparison-tbody');
+      
+      grid.innerHTML = '';
+      tableBody.innerHTML = '';
+
+      problem.compatible.forEach(algoId => {
+        const details = ALGO_DETAILS[algoId];
+        if (!details) return;
+
+        // Render Card
+        const card = document.createElement('div');
+        card.className = `algo-card ${details.type}`;
+        card.dataset.id = algoId;
+        
+        card.innerHTML = `
+          <div class="algo-card-top">
+            <div>
+              <div class="algo-name">${details.name}</div>
+              <div class="algo-fullname">${details.fullName}</div>
+            </div>
+            <span class="algo-badge badge-${details.type}-card">${details.type}</span>
+          </div>
+          <p class="algo-desc">${details.desc}</p>
+          <div class="algo-card-footer">
+            <div class="algo-complexity">
+              Time: ${details.time}<br>Space: ${details.space}
+            </div>
+            <span class="algo-launch">Select</span>
+          </div>
+        `;
+
+        // Card Selection Event
+        card.addEventListener('click', () => {
+          toggleSelect(card, algoId);
+        });
+
+        grid.appendChild(card);
+
+        // Render Table Row
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="algo-col">${details.fullName}</td>
+          <td><span class="badge badge-${details.type}">${details.type}</span></td>
+          <td>${details.time}</td>
+          <td>${details.space}</td>
+          <td class="${details.optimal.startsWith('Yes') ? 'check' : 'cross'}">${details.optimal}</td>
+          <td class="${details.complete.startsWith('Yes') ? 'check' : 'cross'}">${details.complete}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function toggleSelect(card, algoId) {
+      if (card.classList.contains('selected')) {
+        card.classList.remove('selected');
+        selectedAlgos = selectedAlgos.filter(id => id !== algoId);
+      } else {
+        if (selectedAlgos.length >= 2) {
+          // If already 2 selected, unselect first selected card
+          const firstId = selectedAlgos.shift();
+          const firstCard = document.querySelector(`.algo-card[data-id="${firstId}"]`);
+          if (firstCard) firstCard.classList.remove('selected');
+        }
+        card.classList.add('selected');
+        selectedAlgos.push(algoId);
+      }
+      updateButtons();
+    }
+
+    const btnSimulate = document.getElementById('btn-simulate');
+    const btnCompare = document.getElementById('btn-compare');
+
+    function updateButtons() {
+      if (selectedAlgos.length === 1) {
+        btnSimulate.disabled = false;
+        btnCompare.disabled = problem.compatible.length > 1;
+      } else if (selectedAlgos.length === 2) {
+        btnSimulate.disabled = true;
+        btnCompare.disabled = false;
+      } else {
+        btnSimulate.disabled = true;
+        btnCompare.disabled = true;
+      }
+    }
+
+    // Button Redirection Links
+    btnSimulate.addEventListener('click', () => {
+      if (selectedAlgos.length === 1) {
+        // Save to last session
+        localStorage.setItem('agentiq_last_session', JSON.stringify({ problemId, algoId: selectedAlgos[0] }));
+        window.location.href = `simulation.html?problem=${problemId}&algo=${selectedAlgos[0]}`;
+      }
+    });
+
+    btnCompare.addEventListener('click', () => {
+      if (selectedAlgos.length === 2 || (selectedAlgos.length === 1 && problem.compatible.length === 1)) {
+        const leftAlgo = selectedAlgos[0];
+        const rightAlgo = selectedAlgos[1] || selectedAlgos[0];
+        window.location.href = `comparison.html?problem=${problemId}&algo1=${leftAlgo}&algo2=${rightAlgo}`;
+      }
+    });
+
+    if (problem) {
+      initAlgorithmList();
+    }
+
+    // Initialize Agent Modal
+    AgentModal.init();
+
+  </script>
+
+  <!-- AGENT CHATBOT MODAL -->
+  <div class="agent-modal-overlay" id="agent-modal-overlay">
+    <div class="agent-modal">
+      <div class="agent-modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>🤖</span>
+          <span>AgentIQ Assistant</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:12px;font-size:0.7rem;font-weight:normal;">
+            <span id="agent-modal-mode-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent-green);"></span>
+            <span id="agent-modal-mode-label" style="color:var(--accent-light);">Knowledge Base</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="agent-modal-action-btn" id="btn-clear-chat" type="button" title="Clear chat history">Clear</button>
+          <button class="agent-modal-close" id="agent-modal-close">✕</button>
+        </div>
+      </div>
+      <div class="agent-modal-body">
+        <div class="agent-chat-container">
+          <div class="agent-chat-messages" id="agent-chat-messages">
+            <div class="agent-chat-welcome">
+              <span>🤖</span>
+              <p>Hello! I'm <b>AgentIQ Assistant</b> 👋<br>Ask me anything about AI search, algorithms, heuristics, or the PEAS framework!</p>
+            </div>
+          </div>
+          <div class="agent-chat-input-area">
+            <div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;font-weight:600;">Suggested</div>
+            <div id="agent-suggestions-list" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px;"></div>
+            <div class="agent-chat-input-row">
+              <textarea class="agent-chat-input" id="agent-chat-input" placeholder="Ask anything…" rows="2"></textarea>
+              <button class="agent-chat-send" id="agent-chat-send">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

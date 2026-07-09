@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentIQ — Learn How AI Search Really Works</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/home.css" />
+  <link rel="stylesheet" href="assets/css/agent-modal.css" />
+</head>
+<body class="landing-page">
+
+  <div class="landing-bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <nav class="landing-nav">
+    <a href="index.html" class="landing-brand">
+      <span class="brand-icon">🧠</span>
+      <span>AgentIQ</span>
+    </a>
+    <div class="landing-nav-actions">
+      <a href="#features" class="nav-link">Features</a>
+      <a href="#how-it-works" class="nav-link">How it works</a>
+      <a href="#problems" class="nav-link">Problems</a>
+      <button id="btn-agent-open" class="btn btn-secondary btn-sm" title="Open AgentIQ Assistant" style="display:flex; align-items:center; gap:6px;">
+        <span>🤖</span> Assistant
+      </button>
+      <button id="btn-theme-toggle" class="btn btn-secondary btn-sm" title="Toggle Light / Dark Theme">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <a href="login.html" class="btn btn-secondary btn-sm">Log in</a>
+      <a href="login.html?tab=signup" class="btn btn-primary btn-sm" id="nav-cta">Get Started</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-badge">✨ Interactive AI Search Laboratory</div>
+    <h1>See how AI <span class="gradient-text">thinks</span>,<br>step by step</h1>
+    <p class="hero-lead">
+      AgentIQ is a visual learning platform for classical AI search. Run BFS, DFS, A*, and more on
+      real problems — with live frontiers, pseudocode, PEAS agents, and a tutor powered by our
+      curated knowledge base plus Google Gemini.
+    </p>
+    <div class="hero-cta-row">
+      <a href="login.html?tab=signup" class="btn btn-primary btn-lg" id="hero-cta-primary">Get Started — It’s Free</a>
+      <a href="#how-it-works" class="btn btn-secondary btn-lg">See how it works</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-number">12+</div>
+        <div class="stat-label">AI Problems</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-number">6</div>
+        <div class="stat-label">Algorithms</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-number">KB+AI</div>
+        <div class="stat-label">Smart Tutor</div>
+      </div>
+    </div>
+    <div class="hero-preview">
+      <div class="preview-window">
+        <div class="preview-bar">
+          <span></span><span></span><span></span>
+          <span class="preview-title">Robot Path Planning · BFS</span>
+        </div>
+        <div class="preview-body">
+          <div class="preview-grid">
+            <span class="cell start">🤖</span><span class="cell explored"></span><span class="cell frontier"></span><span class="cell"></span><span class="cell wall"></span>
+            <span class="cell explored"></span><span class="cell path"></span><span class="cell current"></span><span class="cell frontier"></span><span class="cell"></span>
+            <span class="cell"></span><span class="cell"></span><span class="cell wall"></span><span class="cell"></span><span class="cell goal">🎯</span>
+          </div>
+          <div class="preview-panel">
+            <div class="preview-line"><em>Step</em> 4</div>
+            <div class="preview-line"><em>Expanding</em> 2, 0</div>
+            <div class="preview-line"><em>Path</em> 0,0 → 1,0 → 2,0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="landing-section" id="features">
+    <div class="section-head">
+      <span class="section-tag">Why AgentIQ</span>
+      <h2>Everything you need to master AI search</h2>
+      <p>Built for students, instructors, and anyone who wants intuition — not just definitions.</p>
+    </div>
+    <div class="features-grid">
+      <article class="feature-card">
+        <div class="feature-icon">▶️</div>
+        <h3>Step-by-step simulation</h3>
+        <p>Play, pause, and step through every phase. Watch the frontier, explored set, and path update in real time on graphs and grids.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon">📚</div>
+        <h3>Curated knowledge base</h3>
+        <p>Our offline KB answers algorithms, PEAS, heuristics, and complexity — instantly. Novel questions fall through to Gemini AI.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Live pseudocode</h3>
+        <p>See exactly which line of BFS, A*, or Hill Climbing runs at each step — highlighted as the simulation executes.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon">⚖️</div>
+        <h3>Algorithm comparison</h3>
+        <p>Run two algorithms side-by-side on the same problem and compare nodes visited, cost, and speed visually.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>PEAS for every problem</h3>
+        <p>Performance, Environment, Actuators, Sensors — understand each agent design before you run a single search.</p>
+      </article>
+      <article class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AgentIQ Assistant</h3>
+        <p>Ask “Why was this node chosen?” or “What is f(n)?” Context-aware chips guide you through the active simulation.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="landing-section alt" id="how-it-works">
+    <div class="section-head">
+      <span class="section-tag">Workflow</span>
+      <h2>How it works</h2>
+    </div>
+    <ol class="steps-row">
+      <li class="step-card">
+        <span class="step-num">1</span>
+        <h3>Create your account</h3>
+        <p>Sign up in seconds. Your progress and chat history stay in your browser.</p>
+      </li>
+      <li class="step-card">
+        <span class="step-num">2</span>
+        <h3>Pick a problem & algorithm</h3>
+        <p>Choose from Romania Map, 8-Puzzle, Robot Path Planning, Wumpus World, and more — then BFS, A*, Greedy, etc.</p>
+      </li>
+      <li class="step-card">
+        <span class="step-num">3</span>
+        <h3>Learn by watching & asking</h3>
+        <p>Step through the search, read pseudocode, and chat with the tutor while the visualization runs.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="landing-section" id="problems">
+    <div class="section-head">
+      <span class="section-tag">Problem catalog</span>
+      <h2>Classic AI problems, one platform</h2>
+    </div>
+    <div class="problems-showcase">
+      <span class="problem-pill">🗺️ Romania Map</span>
+      <span class="problem-pill">🧩 8-Puzzle</span>
+      <span class="problem-pill">🤖 Robot Path</span>
+      <span class="problem-pill">🌀 Maze</span>
+      <span class="problem-pill">👹 Wumpus</span>
+      <span class="problem-pill">🧹 Vacuum</span>
+      <span class="problem-pill">✈️ TSP</span>
+      <span class="problem-pill">♛ N-Queens</span>
+      <span class="problem-pill">🗼 Tower of Hanoi</span>
+      <span class="problem-pill">🧪 Water Jug</span>
+      <span class="problem-pill">🚣 Missionaries</span>
+      <span class="problem-pill">🔢 Sudoku</span>
+    </div>
+    <div class="algo-row">
+      <span class="algo-chip uninformed">BFS</span>
+      <span class="algo-chip uninformed">DFS</span>
+      <span class="algo-chip uninformed">UCS</span>
+      <span class="algo-chip informed">Greedy</span>
+      <span class="algo-chip informed">A*</span>
+      <span class="algo-chip local">Hill Climbing</span>
+    </div>
+  </section>
+
+  <section class="landing-cta">
+    <h2>Ready to explore how search algorithms work?</h2>
+    <p>Join AgentIQ and turn abstract lecture slides into interactive intuition.</p>
+    <a href="login.html?tab=signup" class="btn btn-primary btn-lg">Get Started</a>
+  </section>
+
+  <footer class="landing-footer">
+    <div class="landing-brand small">
+      <span class="brand-icon">🧠</span> AgentIQ
+    </div>
+    <p>Educational AI search visualizer · AIL Project</p>
+    <a href="login.html" class="footer-link">Log in</a>
+  </footer>
+
+  <script>
+    // Clear chat history immediately on home page load
+    (() => {
+      try {
+        // Clear all possible chat history keys (both logged-in and guest)
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('agentiq_chat_global_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (e) {
+        console.error('Failed to clear chat history:', e);
+      }
+    })();
+  </script>
+
+  <script type="module">
+    import { Auth } from './assets/js/auth/auth.js';
+    import { AgentModal } from './assets/js/assistant/agent-modal.js';
+
+    // Initialize theme from query param or localStorage
+    const params = new URLSearchParams(window.location.search);
+    const themeFromParam = params.get('theme');
+    const savedTheme = localStorage.getItem('agentiq_theme') || 'dark';
+    const initialTheme = themeFromParam || savedTheme;
+    document.documentElement.setAttribute('data-theme', initialTheme);
+    localStorage.setItem('agentiq_theme', initialTheme);
+
+    const session = Auth.getCurrentSession();
+    if (session) {
+      const primary = document.getElementById('hero-cta-primary');
+      const navCta = document.getElementById('nav-cta');
+      if (primary) {
+        primary.textContent = 'Go to Dashboard →';
+        primary.href = 'dashboard.html';
+      }
+      if (navCta) {
+        navCta.textContent = 'Dashboard';
+        navCta.href = 'dashboard.html';
+      }
+      document.querySelectorAll('a[href="login.html?tab=signup"].btn-primary.btn-lg').forEach(el => {
+        if (el.id !== 'hero-cta-primary') {
+          el.textContent = 'Open Dashboard';
+          el.href = 'dashboard.html';
+        }
+      });
+    }
+
+    // Theme toggle functionality
+    const themeToggleBtn = document.getElementById('btn-theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const updateThemeIcon = () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    };
+    updateThemeIcon();
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('agentiq_theme', newTheme);
+      updateThemeIcon();
+    });
+
+    // Smooth scroll navigation
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const targetId = this.getAttribute('href');
+        if (targetId !== '#') {
+          const target = document.querySelector(targetId);
+          target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Initialize Agent Modal
+    AgentModal.init();
+  </script>
+
+  <!-- AGENT CHATBOT MODAL -->
+  <div class="agent-modal-overlay" id="agent-modal-overlay">
+    <div class="agent-modal">
+      <div class="agent-modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>🤖</span>
+          <span>AgentIQ Assistant</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:12px;font-size:0.7rem;font-weight:normal;">
+            <span id="agent-modal-mode-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent-green);"></span>
+            <span id="agent-modal-mode-label" style="color:var(--accent-light);">Knowledge Base</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="agent-modal-action-btn" id="btn-clear-chat" type="button" title="Clear chat history">Clear</button>
+          <button class="agent-modal-close" id="agent-modal-close">✕</button>
+        </div>
+      </div>
+      <div class="agent-modal-body">
+        <div class="agent-chat-container">
+          <div class="agent-chat-messages" id="agent-chat-messages">
+            <div class="agent-chat-welcome">
+              <span>🤖</span>
+              <p>Hello! I'm <b>AgentIQ Assistant</b> 👋<br>Ask me anything about AI search, algorithms, heuristics, or the PEAS framework!</p>
+            </div>
+          </div>
+          <div class="agent-chat-input-area">
+            <div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;font-weight:600;">Suggested</div>
+            <div id="agent-suggestions-list" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px;"></div>
+            <div class="agent-chat-input-row">
+              <textarea class="agent-chat-input" id="agent-chat-input" placeholder="Ask anything…" rows="2"></textarea>
+              <button class="agent-chat-send" id="agent-chat-send">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

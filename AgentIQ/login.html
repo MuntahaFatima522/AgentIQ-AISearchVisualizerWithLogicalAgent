@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentIQ — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/auth.css" />
+</head>
+<body class="auth-page">
+
+  <a href="index.html" class="auth-back-link">← Back to home</a>
+  <button id="btn-theme-toggle" class="btn btn-secondary btn-sm" title="Toggle Light / Dark Theme" style="position: absolute; top: 1.25rem; right: 1.5rem; z-index: 10;">
+    <span id="theme-icon">🌙</span>
+  </button>
+
+  <div class="auth-container">
+    <header class="auth-hero">
+      <a href="index.html" class="logo" style="text-decoration:none;color:inherit;">
+        <span class="emoji">🧠</span> AgentIQ
+      </a>
+      <p>Sign in to start exploring AI search algorithms.</p>
+    </header>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login-btn">Login</button>
+      <button class="auth-tab" id="tab-signup-btn">Sign Up</button>
+    </div>
+
+    <main class="auth-body">
+      <div class="form-error-banner" id="error-banner">
+        <span>⚠️</span>
+        <span id="error-banner-text">Error message goes here</span>
+      </div>
+
+      <form class="auth-form active" id="login-form" novalidate>
+        <div class="input-group" id="login-email-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required />
+          <span class="input-error-msg">Please enter a valid email address.</span>
+        </div>
+        <div class="input-group" id="login-password-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required />
+          <span class="input-error-msg">Password is required.</span>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Sign In</button>
+      </form>
+
+      <form class="auth-form" id="signup-form" novalidate>
+        <div class="input-group" id="signup-name-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="Your Name" required />
+          <span class="input-error-msg">Full name is required.</span>
+        </div>
+        <div class="input-group" id="signup-email-group">
+          <label for="signup-email">Email Address</label>
+          <input type="email" id="signup-email" placeholder="email@example.com" required />
+          <span class="input-error-msg">Please enter a valid email address.</span>
+        </div>
+        <div class="input-group" id="signup-password-group">
+          <label for="signup-password">Password (min. 8 chars)</label>
+          <input type="password" id="signup-password" placeholder="••••••••" minlength="8" required />
+          <span class="input-error-msg">Password must be at least 8 characters.</span>
+        </div>
+        <div class="input-group" id="signup-confirm-group">
+          <label for="signup-confirm">Confirm Password</label>
+          <input type="password" id="signup-confirm" placeholder="••••••••" required />
+          <span class="input-error-msg">Passwords do not match.</span>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">Create Account</button>
+      </form>
+    </main>
+  </div>
+
+  <script type="module">
+    import { Auth } from './assets/js/auth/auth.js';
+
+    // Initialize theme from localStorage
+    const savedTheme = localStorage.getItem('agentiq_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Theme toggle functionality
+    const themeToggleBtn = document.getElementById('btn-theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const updateThemeIcon = () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    };
+    updateThemeIcon();
+    themeToggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('agentiq_theme', newTheme);
+      updateThemeIcon();
+    });
+
+    const session = Auth.getCurrentSession();
+    if (session) window.location.href = 'dashboard.html';
+
+    const params = new URLSearchParams(window.location.search);
+    const startSignup = params.get('tab') === 'signup';
+
+    const tabLoginBtn = document.getElementById('tab-login-btn');
+    const tabSignupBtn = document.getElementById('tab-signup-btn');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const errorBanner = document.getElementById('error-banner');
+    const errorBannerText = document.getElementById('error-banner-text');
+
+    function showSignupTab() {
+      tabSignupBtn.classList.add('active');
+      tabLoginBtn.classList.remove('active');
+      signupForm.classList.add('active');
+      loginForm.classList.remove('active');
+    }
+
+    if (startSignup) showSignupTab();
+
+    tabLoginBtn.addEventListener('click', () => {
+      tabLoginBtn.classList.add('active');
+      tabSignupBtn.classList.remove('active');
+      loginForm.classList.add('active');
+      signupForm.classList.remove('active');
+      hideErrorBanner();
+      clearFormErrors();
+    });
+
+    tabSignupBtn.addEventListener('click', showSignupTab);
+
+    function showErrorBanner(msg) {
+      errorBannerText.textContent = msg;
+      errorBanner.classList.add('show');
+    }
+    function hideErrorBanner() { errorBanner.classList.remove('show'); }
+    function clearFormErrors() {
+      document.querySelectorAll('.input-group').forEach(g => g.classList.remove('has-error'));
+    }
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      hideErrorBanner();
+      clearFormErrors();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-password').value;
+      let valid = true;
+      if (!validateEmail(email)) {
+        document.getElementById('login-email-group').classList.add('has-error');
+        valid = false;
+      }
+      if (!pass) {
+        document.getElementById('login-password-group').classList.add('has-error');
+        valid = false;
+      }
+      if (!valid) return;
+      const result = Auth.login(email, pass);
+      if (result.success) window.location.href = 'dashboard.html';
+      else showErrorBanner(result.message);
+    });
+
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      hideErrorBanner();
+      clearFormErrors();
+      const name = document.getElementById('signup-name').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const pass = document.getElementById('signup-password').value;
+      const confirm = document.getElementById('signup-confirm').value;
+      let valid = true;
+      if (!name) { document.getElementById('signup-name-group').classList.add('has-error'); valid = false; }
+      if (!validateEmail(email)) { document.getElementById('signup-email-group').classList.add('has-error'); valid = false; }
+      if (pass.length < 8) { document.getElementById('signup-password-group').classList.add('has-error'); valid = false; }
+      if (pass !== confirm) { document.getElementById('signup-confirm-group').classList.add('has-error'); valid = false; }
+      if (!valid) return;
+      const result = Auth.signUp(name, email, pass);
+      if (result.success) window.location.href = 'dashboard.html';
+      else showErrorBanner(result.message);
+    });
+  </script>
+</body>
+</html>

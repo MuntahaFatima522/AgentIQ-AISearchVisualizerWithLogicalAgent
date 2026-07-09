@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentIQ — Dashboard</title>
+  
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/dashboard.css" />
+  <link rel="stylesheet" href="assets/css/agent-modal.css" />
+
+  <!-- Guard Route Protection -->
+  <script type="module" src="assets/js/auth/guard.js"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="dashboard.html">
+      <span class="emoji">🧠</span> AgentIQ
+    </a>
+    
+    <div class="navbar-links">
+      <button id="btn-agent-open" class="nav-agent-btn" title="Open AgentIQ Assistant" style="display:flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(108,92,231,0.15); border:1px solid rgba(108,92,231,0.3); border-radius:6px; color:var(--accent-light); font-size:0.85rem; cursor:pointer; transition:all var(--transition); margin-right:12px;">
+        <span>🤖</span> Assistant
+      </button>
+      <div class="user-profile">
+        <button class="profile-trigger" id="profile-trigger">
+          <div class="profile-avatar" id="user-avatar">U</div>
+          <span class="profile-name" id="user-name">User</span>
+          <span style="font-size: 0.6rem; color: var(--text-muted);">▼</span>
+        </button>
+        <div class="dropdown-menu" id="profile-dropdown">
+          <button class="dropdown-item" id="btn-settings">⚙️ Settings</button>
+          <button class="dropdown-item" id="btn-logout">🚪 Log Out</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- DASHBOARD PAGE CONTENT -->
+  <main class="dashboard-page">
+    
+    <!-- Welcome Header -->
+    <header class="dashboard-header">
+      <div class="welcome-msg">
+        <h1 id="welcome-title">Welcome back, Explorer</h1>
+        <p>Choose an AI problem space to inspect and step through solving strategies.</p>
+      </div>
+    </header>
+
+    <section class="progress-overview" aria-label="Learning progress">
+      <div class="progress-card">
+        <span class="progress-label">Problems Completed</span>
+        <strong id="progress-problems">0/0</strong>
+      </div>
+      <div class="progress-card">
+        <span class="progress-label">Algorithms Tried</span>
+        <strong id="progress-algorithms">0</strong>
+      </div>
+      <div class="progress-card">
+        <span class="progress-label">Completion</span>
+        <strong id="progress-percent">0%</strong>
+      </div>
+      <div class="progress-card wide">
+        <span class="progress-label">Last Completed</span>
+        <strong id="progress-last">Not yet</strong>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All Problems</button>
+      <button class="filter-btn" data-filter="graph">Graph Search</button>
+      <button class="filter-btn" data-filter="board">Board Games</button>
+      <button class="filter-btn" data-filter="grid">Grid Worlds</button>
+      <button class="filter-btn" data-filter="math">Logic / Math</button>
+    </div>
+
+    <!-- Problems List Grid -->
+    <section class="problems-grid" id="problems-grid">
+      <!-- Injected by JavaScript -->
+    </section>
+
+  </main>
+
+  <!-- SETTINGS MODAL -->
+  <div class="settings-modal" id="settings-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>App Settings</h3>
+        <button class="modal-close" id="modal-close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Visual Theme</label>
+          <button class="btn btn-secondary w-full" id="btn-theme-toggle" style="justify-content: space-between;">
+            <span>Toggle Light / Dark Mode</span>
+            <span id="theme-mode-label">Dark Mode</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="modal-save-btn">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Script Logic -->
+  <script type="module">
+    import { Auth } from './assets/js/auth/auth.js';
+    import { PROBLEMS_METADATA } from './assets/js/problems/problems_all.js';
+    import { AgentModal } from './assets/js/assistant/agent-modal.js';
+    // Populate user profile details
+    const session = Auth.getCurrentSession();
+    if (session) {
+      document.getElementById('welcome-title').textContent = `Welcome back, ${session.name}`;
+      document.getElementById('user-name').textContent = session.name;
+      document.getElementById('user-avatar').textContent = session.name.charAt(0);
+    }
+
+    // Settings & Theme Initialization
+    const currentTheme = localStorage.getItem('agentiq_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    document.getElementById('theme-mode-label').textContent = currentTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+
+    // UI Interactive Event bindings
+    const profileTrigger = document.getElementById('profile-trigger');
+    const profileDropdown = document.getElementById('profile-dropdown');
+    
+    profileTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      profileDropdown.classList.toggle('show');
+    });
+
+    document.addEventListener('click', () => {
+      profileDropdown.classList.remove('show');
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      Auth.logout();
+    });
+
+    // Modal Control
+    const settingsModal = document.getElementById('settings-modal');
+    document.getElementById('btn-settings').addEventListener('click', () => {
+      settingsModal.classList.add('show');
+    });
+    
+    const closeModal = () => settingsModal.classList.remove('show');
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+
+    // Save Settings
+    document.getElementById('modal-save-btn').addEventListener('click', closeModal);
+
+    // Theme Toggle inside Modal
+    document.getElementById('btn-theme-toggle').addEventListener('click', () => {
+      const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('agentiq_theme', newTheme);
+      document.getElementById('theme-mode-label').textContent = newTheme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+    });
+
+    function getProgressStorageKey() {
+      const userId = session?.email ? encodeURIComponent(session.email.toLowerCase()) : 'guest';
+      return `agentiq_progress_${userId}`;
+    }
+
+    function loadProgressData() {
+      try {
+        return JSON.parse(localStorage.getItem(getProgressStorageKey()) || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function formatProgressDate(value) {
+      if (!value) return 'Not yet';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Not yet';
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function updateProgressOverview() {
+      const progressData = loadProgressData();
+      const problems = Object.values(PROBLEMS_METADATA).filter(prob => prob.id !== 'waterjug_compare');
+      const completedEntries = problems
+        .map(prob => ({ problem: prob, data: progressData[prob.id] }))
+        .filter(item => item.data?.completed);
+      const completedProblems = completedEntries.length;
+      const completedAlgorithms = completedEntries.reduce((total, item) => {
+        return total + new Set(item.data.algos || []).size;
+      }, 0);
+      const latest = completedEntries
+        .map(item => item.data.lastCompletedAt)
+        .filter(Boolean)
+        .sort()
+        .at(-1);
+
+      document.getElementById('progress-problems').textContent = `${completedProblems}/${problems.length}`;
+      document.getElementById('progress-algorithms').textContent = completedAlgorithms;
+      document.getElementById('progress-percent').textContent =
+        `${Math.round((completedProblems / Math.max(problems.length, 1)) * 100)}%`;
+      document.getElementById('progress-last').textContent = formatProgressDate(latest);
+    }
+
+    // Render Cards
+    const problemsGrid = document.getElementById('problems-grid');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+
+    function renderCards(filter = 'all') {
+      const progressData = loadProgressData();
+      problemsGrid.innerHTML = '';
+      Object.values(PROBLEMS_METADATA).forEach(prob => {
+        // Skip compare jug wrapper alias if present
+        if (prob.id === 'waterjug_compare') return;
+
+        if (filter !== 'all' && prob.category !== filter) return;
+
+        const card = document.createElement('div');
+        card.className = 'problem-card';
+        card.addEventListener('click', () => {
+          window.location.href = `algo-select.html?problem=${prob.id}`;
+        });
+
+        // Compute compatible tags
+        const tagsHtml = prob.compatible.map(algo => {
+          let label = algo;
+          if (algo === 'AStar') label = 'A*';
+          if (algo === 'HillClimbing') label = 'Hill Climbing';
+          return `<span class="badge badge-uninformed">${label}</span>`;
+        }).join(' ');
+
+        const isCompleted = progressData[prob.id] && progressData[prob.id].completed;
+        const completedAlgos = progressData[prob.id]?.algos?.length || 0;
+        const completionBadge = isCompleted 
+          ? `<span class="badge badge-success" style="background: rgba(74,222,128,0.12); color: var(--green); text-transform: uppercase; font-size: 0.65rem; border: 1px solid rgba(74,222,128,0.3); padding: 2px 6px; border-radius: 4px;">✓ Completed</span>` 
+          : '';
+        const progressLine = isCompleted
+          ? `${completedAlgos}/${prob.compatible.length} algorithms tried`
+          : `${prob.compatible.length} Algorithms`;
+
+        card.innerHTML = `
+          <div class="card-header-row">
+            <div class="card-icon">${prob.icon}</div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              ${completionBadge}
+              <span class="badge badge-informed" style="text-transform: capitalize;">${prob.category}</span>
+            </div>
+          </div>
+          <h3 class="card-title">${prob.name}</h3>
+          <p class="card-desc">${prob.description}</p>
+          <div class="card-badges">${tagsHtml}</div>
+          <div class="card-footer-row">
+            <span>${progressLine}</span>
+            <span class="btn-launch">Explore ➔</span>
+          </div>
+        `;
+
+        problemsGrid.appendChild(card);
+      });
+    }
+
+    // Bind Filter Clicking
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderCards(btn.dataset.filter);
+      });
+    });
+
+    updateProgressOverview();
+    renderCards();
+
+    // Initialize Agent Modal
+    AgentModal.init();
+  </script>
+
+  <!-- AGENT CHATBOT MODAL -->
+  <div class="agent-modal-overlay" id="agent-modal-overlay">
+    <div class="agent-modal">
+      <div class="agent-modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span>🤖</span>
+          <span>AgentIQ Assistant</span>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:12px;font-size:0.7rem;font-weight:normal;">
+            <span id="agent-modal-mode-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent-green);"></span>
+            <span id="agent-modal-mode-label" style="color:var(--accent-light);">Knowledge Base</span>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="agent-modal-action-btn" id="btn-clear-chat" type="button" title="Clear chat history">Clear</button>
+          <button class="agent-modal-close" id="agent-modal-close">✕</button>
+        </div>
+      </div>
+      <div class="agent-modal-body">
+        <div class="agent-chat-container">
+          <div class="agent-chat-messages" id="agent-chat-messages">
+            <div class="agent-chat-welcome">
+              <span>🤖</span>
+              <p>Hello! I'm <b>AgentIQ Assistant</b> 👋<br>Ask me anything about AI search, algorithms, heuristics, or the PEAS framework!</p>
+            </div>
+          </div>
+          <div class="agent-chat-input-area">
+            <div style="font-size:0.55rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;font-weight:600;">Suggested</div>
+            <div id="agent-suggestions-list" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:6px;"></div>
+            <div class="agent-chat-input-row">
+              <textarea class="agent-chat-input" id="agent-chat-input" placeholder="Ask anything…" rows="2"></textarea>
+              <button class="agent-chat-send" id="agent-chat-send">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
