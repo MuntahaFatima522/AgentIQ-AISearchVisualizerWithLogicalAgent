@@ -1,7 +1,7 @@
 # AgentIQ 🤖
 
 An interactive AI search visualization and learning platform built as an
-Artificial Intelligence course project (CSC-202L). Watch BFS, DFS, A*, UCS,
+Artificial Intelligence course project. Watch BFS, DFS, A*, UCS,
 Greedy Best-First, and Hill Climbing solve 12 classic AI problems step by
 step — with synchronized pseudocode, live frontier tracking, PEAS
 formalization, and a dual-layer AI tutor (curated knowledge base + Google
